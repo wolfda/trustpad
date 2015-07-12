@@ -1,3 +1,8 @@
+/**
+ * @file implements the trustpad UI.
+ * @author Daniel Wolf
+ */
+
 var CLIENT_ID = '170791641914-aihfsicei215ult5r0qjmq5gg0jqn4k6.apps.googleusercontent.com';
 var SCOPES = 'https://www.googleapis.com/auth/drive';
 var trustpad;

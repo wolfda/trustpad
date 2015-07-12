@@ -1,3 +1,8 @@
+/**
+ * @file API to read/write text files on Google Drive.
+ * @author Daniel Wolf
+ */
+
 function GDrive() {
 }
 

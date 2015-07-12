@@ -1,4 +1,9 @@
 /**
+ * @file encrypt/decrypt text content.
+ * @author Daniel Wolf
+ */
+
+/**
  * @param {string} passphrase The secret passphrase
  */
 function Codec(passphrase) {
