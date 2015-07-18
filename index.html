@@ -1,0 +1,57 @@
+<html>
+    <head>
+        <link rel="stylesheet" type="text/css" href="trustpad.css">
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+        <script type="text/javascript" src="sjcl.js"></script>
+        <script type="text/javascript" src="codec.js"></script>
+        <script type="text/javascript" src="gdrive.js"></script>
+        <script type="text/javascript" src="trustpad.js"></script>
+        <script type="text/javascript" src="https://apis.google.com/js/client.js?onload=start"></script>
+    </head>
+    <body>
+        <button id="authorizeButton" style="display: none">Signin</button>
+        <div id="save-status" class="save-status"></div>
+
+        <div class="text-control-panel">
+            <textarea id="text-area" onchange="trustpad.scheduleSave(1000)" onkeyup="trustpad.scheduleSave(1000)"></textarea>
+        </div>
+        <div id="glasspanel" class="glasspanel" style="display: none"></div>
+
+        <div id="passphrase-dialog" class="box" style="display: none">
+            <div class="title">Restricted Access</div>
+            <form class="form-inline" action="#" onsubmit="trustpad.decrypt(); return false;">
+                <!-- fake field as a workaround for chrome autofill getting the wrong fields -->
+                <input type="password" style="display:none"/>
+                <div id="passphrase-control" class="form-group">
+                    <input type="password" class="form-control" id="passphrase" placeholder="Enter the pass phrase" size="35">
+                </div>
+                <input type="submit" value="Enter" class="btn btn-success">
+            </form>
+            <label id="passphrase-error" class="error"></label>
+        </div>
+
+        <div id="new-passphrase-dialog" class="box" style="display: none">
+            <div class="title">New passphrase</div>
+            <form action="#" onsubmit="trustpad.newPassphrase(); return false;">
+                <!-- fake field as a workaround for chrome autofill getting the wrong fields -->
+                <input type="password" style="display:none"/>
+                <div class="form-group"><input type="password" class="form-control" id="new-passphrase" placeholder="Enter a pass phrase" size="35"></div>
+                <div class="form-group"><input type="password" class="form-control" id="new-passphrase2" placeholder="Verify pass phrase" size="35"></div>
+
+                <div class="form-group">
+                    <label id="new-passphrase-error" class="error"></label>
+                    <input type="submit" value="Enter" class="btn btn-success pull-right">
+                </div>
+            </form>
+        </div>
+
+        <div id="signin-dialog" class="box" style="display: none">
+            <div class="title">Signin with Google</div>
+            <form action="#" onsubmit="trustpad.signinGoogle(); return false;">
+                <div class="form-group">
+                    <input type="submit" value="Sign in" class="btn btn-success">
+                </div>
+            </form>
+        </div>
+    </body>
+</html>
