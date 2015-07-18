@@ -27,10 +27,11 @@ GDrive.prototype.listTrustpadFiles = function(callback) {
         'path': 'https://www.googleapis.com/drive/v2/files/root/children',
         'method': 'GET',
         'params': {
-            'q': 'title contains \'.trustpad\' and trashed=false'
+            'q': 'title contains \'.trustpad\' and not trashed'
         }
     }).then(
         function(res) {
+            console.log(res.result);
             callback(res.result.items);
         },
         function(error) {
