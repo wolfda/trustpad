@@ -17,17 +17,16 @@ encrypted.
 
 # Run local server
 
+To test local changes, run a local server on port 8080 with this command:
+
 ```
 ./script/dev-appengine.sh
 ```
 
-This will run a local http server on port 8080.
-
 # Deploy
+
+To deploy the master branch live on appengine:
 
 ```
 ./script/deploy-appengine.sh
-appcfg.py update .
 ```
-
-This will deploy the master branch on appengine.
