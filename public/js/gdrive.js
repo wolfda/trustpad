@@ -1,5 +1,5 @@
 /**
- * @file API to read/write text files on Google Drive.
+ * @file API to read/write text files on Google Drive. See https://developers.google.com/drive/web/quickstart/js
  * @author Daniel Wolf
  */
 
