@@ -8,7 +8,7 @@
 
 SJCL_ROOT=../sjcl
 FILES="sjcl.js codecString.js codecBase64.js sha256.js hmac.js bitArray.js random.js pbkdf2.js aes.js ccm.js"
-SJCL_JS="sjcl.js"
+SJCL_JS="public/js/sjcl.js"
 
 rm -f $SJCL_JS
 for FILE in $FILES
