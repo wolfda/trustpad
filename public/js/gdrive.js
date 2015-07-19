@@ -4,10 +4,34 @@
  */
 
 function GDrive() {
+    this.ready = false;
+    this.delayedQueue = [];
+
+    gapi.client.setApiKey(GDrive.API_KEY);
+    gapi.client.load('drive', 'v2', this.setReady.bind(this));
 }
 
+GDrive.API_KEY = 'AIzaSyCIfNCqRxgnd5xanK9oCtv8olMOF9187yQ';
 GDrive.CLIENT_ID = '170791641914-aihfsicei215ult5r0qjmq5gg0jqn4k6.apps.googleusercontent.com';
 GDrive.SCOPES = 'https://www.googleapis.com/auth/drive';
+
+/**
+ * Delay the execution of an api method after the api is ready.
+ */
+GDrive.prototype.whenReadyCall = function(delayedFunction) {
+    this.delayedQueue.push(delayedFunction);
+};
+
+/**
+ * Notify that the drive api is ready to be called. Processes any pending calls than may have been queued up.
+ */
+GDrive.prototype.setReady = function() {
+    this.ready = true;
+    for (var i = 0; i < this.delayedQueue.length; i++) {
+        this.delayedQueue[i]();
+    }
+    this.delayedQueue = null;
+};
 
 /**
  * Check if the current user has authorized the application.
@@ -23,19 +47,20 @@ GDrive.prototype.auth = function(immediate, callback) {
 };
 
 GDrive.prototype.listTrustpadFiles = function(callback) {
-    var request = gapi.client.request({
-        'path': 'https://www.googleapis.com/drive/v2/files/root/children',
-        'method': 'GET',
-        'params': {
-            'q': 'title contains \'.trustpad\' and not trashed'
-        }
+    if (!this.ready) {
+        this.whenReadyCall(this.listTrustpadFiles.bind(this, callback));
+        return;
+    }
+
+    var request = gapi.client.drive.files.list({
+        'q': 'title contains \'.trustpad\' and not trashed'
     }).then(
         function(res) {
-            console.log(res.result);
-            callback(res.result.items);
+          console.log(res.result);
+          callback(res.result.items);
         },
         function(error) {
-            console.log('error: ' + error);
+          console.log('error: ' + error);
         }
     );
 };
@@ -78,25 +103,18 @@ GDrive.prototype.writeFile = function(fileId, data, callback) {
 };
 
 GDrive.prototype.readFile = function(fileId, callback) {
-    var request = gapi.client.request({
-        'path': '/drive/v2/files/' + fileId,
-        'params': { 'alt': 'media' }
+    if (!this.ready) {
+        this.whenReadyCall(this.readFile.bind(this, fileId, callback));
+        return;
+    }
+
+    var request = gapi.client.drive.files.get({
+        'fileId': fileId,
+        'alt': 'media'
     }).then(
         function(res) {
             callback(res.body);
         },
-        function(error) {
-            console.log('error: ' + error);
-        }
-    );
-};
-
-GDrive.prototype.getFile = function(id, callback) {
-    var request = gapi.client.request({
-        'path': 'https://www.googleapis.com/drive/v2/files/' + id,
-        'method': 'GET'
-    }).then(
-        callback,
         function(error) {
             console.log('error: ' + error);
         }
