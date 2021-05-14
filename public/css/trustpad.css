@@ -1,7 +1,20 @@
 body {
-    font-family: "Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;
+    font-family: Roboto,RobotoDraft,Helvetica,Arial,sans-serif;
     -webkit-font-smoothing: antialiased;
-    padding: 10px;
+    font-size: 200%
+    font-weight: 200%
+}
+
+@media screen and (min-width: 1000px) {
+    body {
+        padding: 10px;
+    }
+}
+
+@media screen and (max-width: 1000px) {
+    body {
+        padding: 0px;
+    }
 }
 
 .text-control-panel {
@@ -24,34 +37,50 @@ body {
 .save-status {
     color: #777;
     font-size: 13pt;
-    margin-bottom: 10px;
+    padding: 0 10px 0 0;
 }
 
 .box {
     position: absolute;
-    width: 390px;
-    left: 50%;
-    top: 50%;
-    margin:-190px 0 0 -190px;
     z-index: 100;
-    border-radius: 10px;
     padding: 20px;
-    background-color: white;
-    box-shadow: 0 0 20px #888888;
     background-color: #ebffd6;
-    opacity: 0.97;
     color: rgba(0, 0, 0, 0.73);
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
-    -moz-backface-visibility: hidden;
-    transition: transform 1s, opacity 1s;
-    -webkit-transition: -webkit-transform 1s, opacity 1s;
-    -moz-transition: -moz-transform 1s, opacity 1s;
-    -ms-transition: -ms-transform 1s, opacity 1s;
+}
+
+@media screen and (min-width: 1000px) {
+    .box {
+        width: 390px;
+        left: 50%;
+        top: 50%;
+        margin:-190px 0 0 -190px;
+        border-radius: 10px;
+        box-shadow: 0 0 20px #888888;
+        opacity: 0.97;
+    }
+}
+
+@media screen and (max-width: 1000px) {
+    .box {
+        width: 100%;
+        height: 100%;
+        left: 0;
+        top: 0;
+    }
+}
+
+.close {
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    width: 20px;
+    height: 20px;
+    background: url("/images/close.png") no-repeat center/100%;
+    cursor: pointer;
 }
 
 .box .title {
-    font-size: 28px;
+    font-size: 2em;
     margin-bottom: 20px;
 }
 
@@ -68,4 +97,81 @@ body {
 .error {
     margin-top: 5px;
     color: red;
+}
+
+@media screen and (min-width: 1000px) {
+    #filelist {
+        padding: 0;
+    }
+}
+
+@media screen and (max-width: 1000px) {
+    #filelist {
+        padding: 0;
+        left: 0;
+        right: 0;
+    }
+}
+
+table.filelist {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+.filelist tr {
+    border-bottom: 1px solid rgba(0,0,0,.30);
+}
+
+.filelist th, .filelist td {
+    text-align: left;
+    vertical-align: middle;
+    color: rgba(0,0,0,.54);
+}
+
+.filelist th {
+    padding-left: 10px;
+    vertical-align: top;
+    height: 30px;
+}
+
+.filelist td {
+    cursor: pointer;
+    padding: 30px 0 30px 40px;
+    height: 50px;
+    font-weight: 500;
+    background: url("/images/file.png") no-repeat 10px 50%;
+    vertical-align: middle;
+}
+
+.filelist tr.file:hover {
+    background-color: rgba(0,0,0,.05);
+}
+
+.filelist .name {
+    font-size: 1.3em;
+    font-weight: 500;
+    color: rgba(0,0,0,.72);
+}
+
+#filelist .create-button {
+    position: absolute;
+    right: 10px;
+    top: 10px;
+}
+
+#filelist .create {
+    cursor: pointer;
+    font-weight: bold;
+    color: blue;
+}
+
+#create-trailer {
+    padding: 20px 0 0 10px;
+    font-size: 1.2em
+}
+
+.loading {
+    width: 100%;
+    height: 100%;
+    background: url("/images/loading.gif") no-repeat center;
 }

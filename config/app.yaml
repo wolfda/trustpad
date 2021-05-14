@@ -4,16 +4,20 @@ threadsafe: true
 
 handlers:
 
-- url: /
-  static_files: index.html
-  upload: index.html
+- url: /css
+  static_dir: css
+
+- url: /js
+  static_dir: js
+
+- url: /images
+  static_dir: images
 
 - url: /privacy
   static_files: privacy.html
   upload: privacy.html
 
-- url: /js
-  static_dir: js
-
-- url: /css
-  static_dir: css
+- url: /.*
+  static_files: index.html
+  upload: index.html
+  secure: always

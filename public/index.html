@@ -2,56 +2,94 @@
     <head>
         <link rel="stylesheet" type="text/css" href="css/trustpad.css">
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
         <script type="text/javascript" src="js/sjcl.js"></script>
         <script type="text/javascript" src="js/codec.js"></script>
         <script type="text/javascript" src="js/gdrive.js"></script>
         <script type="text/javascript" src="js/trustpad.js"></script>
-        <script type="text/javascript" src="https://apis.google.com/js/client.js?onload=start"></script>
-    </head>
-    <body>
-        <button id="authorizeButton" style="display: none">Signin</button>
-        <div id="save-status" class="save-status"></div>
+        <script type="text/javascript" src="https://apis.google.com/js/api.js"></script>
+        <!-- Global site tag (gtag.js) - Google Analytics -->
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-3FGP04L1YF"></script>
+        <script>
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
 
-        <div class="text-control-panel">
-            <textarea id="text-area" onchange="trustpad.scheduleSave(1000)" onkeyup="trustpad.scheduleSave(1000)"></textarea>
+          gtag('config', 'G-3FGP04L1YF');
+        </script>
+    </head>
+    <body onload="start()">
+        <button id="authorizeButton" style="display: none">Signin</button>
+
+        <div id="file-editor" style="display: none">
+            <div id="save-status" class="save-status"></div>
+            <div id="file-editor-close" class="close"></div>
+
+            <div class="text-control-panel">
+                <textarea id="text-area" onchange="trustpad.scheduleSave(1000)" onkeyup="trustpad.scheduleSave(1000)"></textarea>
+            </div>
         </div>
+
         <div id="glasspanel" class="glasspanel" style="display: none"></div>
 
         <div id="passphrase-dialog" class="box" style="display: none">
             <div class="title">Restricted Access</div>
-            <form class="form-inline" action="#" onsubmit="trustpad.decrypt(); return false;">
+            <form action="#">
                 <!-- fake field as a workaround for chrome autofill getting the wrong fields -->
                 <input type="password" style="display:none"/>
                 <div id="passphrase-control" class="form-group">
-                    <input type="password" class="form-control" id="passphrase" placeholder="Enter the pass phrase" size="35">
+                    <input type="password" class="form-control" name="password" id="passphrase" autocomplete="off" placeholder="Enter the password" size="35">
                 </div>
                 <input type="submit" value="Enter" class="btn btn-success">
             </form>
             <label id="passphrase-error" class="error"></label>
         </div>
 
-        <div id="new-passphrase-dialog" class="box" style="display: none">
-            <div class="title">New passphrase</div>
-            <form action="#" onsubmit="trustpad.newPassphrase(); return false;">
+        <div id="new-file-dialog" class="box" style="display: none">
+            <div class="title">Create new file</div>
+            <div id="new-passphrase-error" class="error">_</div>
+            <form autocomplete="off" action="#">
                 <!-- fake field as a workaround for chrome autofill getting the wrong fields -->
                 <input type="password" style="display:none"/>
-                <div class="form-group"><input type="password" class="form-control" id="new-passphrase" placeholder="Enter a pass phrase" size="35"></div>
-                <div class="form-group"><input type="password" class="form-control" id="new-passphrase2" placeholder="Verify pass phrase" size="35"></div>
+                <div class="form-group">
+                    <label for="new-filename">file name:</label>
+                    <input type="text" name="filename" class="form-control" id="new-filename" placeholder="Enter file name" size="35">
+                </div>
+                <div class="form-group">
+                    <label for="new-passphrase">master password:</label>
+                    <input type="password" name="password" class="form-control" id="new-passphrase" autocomplete="off" placeholder="Enter a password" size="35">
+                </div>
+                <div class="form-group">
+                    <input type="password" name="password2" class="form-control" id="new-passphrase2" autocomplete="off" placeholder="Verify password" size="35">
+                </div>
 
                 <div class="form-group">
-                    <label id="new-passphrase-error" class="error"></label>
-                    <input type="submit" value="Enter" class="btn btn-success pull-right">
+                    <input type="submit" value="Create" class="btn btn-success">
+                    <input type="button" value="Cancel" class="btn" onclick="trustpad.modalDialog.close()">
                 </div>
             </form>
         </div>
 
         <div id="signin-dialog" class="box" style="display: none">
             <div class="title">Signin with Google</div>
-            <form action="#" onsubmit="trustpad.signinGoogle(); return false;">
+            <form action="#">
                 <div class="form-group">
                     <input type="submit" value="Sign in" class="btn btn-success">
                 </div>
             </form>
         </div>
+
+        <div id="filelist" style="display: none">
+            <table class="filelist">
+            </table>
+            <div id="createfile" class="create create-button" onclick="trustpad.openCreateFile()">New file</div>
+
+            <div id="create-trailer">
+                No file. Use the <span class="create" onclick="trustpad.openCreateFile()">New file</span> above.
+            </div>
+        </div>
+
+
+        <div id="splash" class="loading"></div>
     </body>
 </html>

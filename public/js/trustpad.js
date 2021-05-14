@@ -5,20 +5,56 @@
 
 var trustpad;
 
+function log(message) {
+    let splash = document.getElementById("splash");
+    splash.innerHTML += message + "<br>";
+}
+
 /**
  * Check if the current user has authorized the application.
  */
 function start() {
-    let textArea = document.getElementById('text-area');
-    trustpad = new Trustpad(textArea);
-    trustpad.checkAuth();
+    let gdrive = new GDrive();
+    gdrive.load()
+        .then(res => {
+            let textArea = document.getElementById("text-area");
+            trustpad = new Trustpad(textArea, gdrive);
+            trustpad.checkAuth().then(res => {
+                trustpad.loadFromAddressBar();
+            });
+        })
+        .catch(error => {
+            log("Error, unable to start the application");
+            throw error;
+        });
 }
 
 class Trustpad {
     textArea;
-    gdrive = new GDrive();
-    constructor(textArea) {
+    gdrive;
+    fileId;
+    modalDialog = new ModalDialog();
+    saveTimeout;
+
+    constructor(textArea, gdrive) {
         this.textArea = textArea;
+        this.gdrive = gdrive;
+
+        window.addEventListener('popstate', function() {
+            trustpad.loadFromAddressBar();
+        });
+        document.getElementById('file-editor-close')
+            .addEventListener('click', function() {
+                this.updateAddressBar("/")
+            }.bind(this));
+    }
+
+    setVisible_(element, visible) {
+        element.style.display = visible ? 'block' : 'none';
+    }
+
+    hideLoading() {
+        this.setVisible_(document.getElementById('splash'), false);
     }
 
     setStatus(statusMessage) {
@@ -26,39 +62,16 @@ class Trustpad {
     }
 
     checkAuth() {
-        this.gdrive.auth(true, function(authorized) {
-            if (!authorized) {
-                this.signin();
-                return;
-            }
-            this.gdrive.listTrustpadFiles(function(files) {
-                console.log('files: ' + files.length);
-                if (files.length == 0) {
-                    this.showDialog('new-passphrase-dialog', 'new-passphrase');
-                    this.setStatus('New passphrase required');
-                } else if (files.length == 1) {
-                    let fileId = files[0].id;
-                    this.gdrive.readFile(fileId, function(content) {
-                        let params = JSON.parse(content);
-                        this.cipherText = content;
-                        trustpad.setContent(fileId, params.encrypted);
-                        this.showDialog('passphrase-dialog', 'passphrase');
-                        this.setStatus('Password required');
-                    }.bind(this));
-                } else {
-                    alert('Oops. More than one file not supported yet.');
-                }
-            }.bind(this));
-        }.bind(this));
+        if (!this.gdrive.isSignedIn()) {
+            return this.gdrive.signIn(true).then(res => this.checkAuth());
+        }
+        return Promise.resolve();
     }
 
     signin() {
-        this.showDialog('signin-dialog');
-    }
-
-    signinGoogle() {
-        this.hideDialog('signin-dialog');
-        this.gdrive.auth(false, this.checkAuth.bind(this));
+        this.modalDialog.openDialog('signin-dialog')
+            .then(values => this.gdrive.signIn(true))
+            .then(res => this.checkAuth())
     }
 
     setContent(fileId, content) {
@@ -81,61 +94,240 @@ class Trustpad {
             return;
         }
         let content = this.codec.encrypt(this.textArea.value);
-        this.gdrive.writeFile(this.fileId, content, function(newFileId) {
-            if (!this.fileId) {
-                this.fileId = newFileId;
-            }
+        this.gdrive.writeFile(this.fileId, null, content).then(newFileId => {
+            this.fileId = newFileId;
             this.setStatus('All changes saved');
-        }.bind(this));
+        });
     }
 
-    showDialog(dialogId, focusId) {
-        document.getElementById('glasspanel').style.display = 'block';
-        document.getElementById(dialogId).style.display = 'block';
-        if (focusId) {
-            document.getElementById(focusId).focus();
+    openCreateFile() {
+        let validate = function(values) {
+            if (!values.filename) {
+                document.getElementById('new-passphrase-error').innerText = 'Name empty';
+                return false;
+            }
+            if (!values.password) {
+                document.getElementById('new-passphrase-error').innerText = 'Password empty';
+                document.getElementById('new-passphrase').value = '';
+                document.getElementById('new-passphrase2').value = '';
+                document.getElementById('new-passphrase').focus();
+                return false;
+            }
+            if (values.password.length < 6) {
+                document.getElementById('new-passphrase-error').innerText = 'Password too short';
+                document.getElementById('new-passphrase').value = '';
+                document.getElementById('new-passphrase2').value = '';
+                document.getElementById('new-passphrase').focus();
+                return false;
+            }
+            if (values.password != values.password2) {
+                document.getElementById('new-passphrase-error').innerText = 'Passwords do not match';
+                document.getElementById('new-passphrase').value = '';
+                document.getElementById('new-passphrase2').value = '';
+                document.getElementById('new-passphrase').focus();
+                return false;
+            }
+            return true;
+        }
+        this.modalDialog.openDialog('new-file-dialog', 'new-filename', validate).then(values => {
+            this.codec = new Codec(values.password);
+            this.gdrive.writeFile(null, values.filename, this.codec.encrypt(''))
+                .then(newFileId => this.updateAddressBar("/" + newFileId));
+        });
+    }
+
+    sortFileByName_(file0, file1) {
+        if (file0.name < file1.name) {
+            return -1;
+        } else if (file0.name > file1.name) {
+            return 1;
+        } else {
+            return 0;
         }
     }
 
-    hideDialog(dialogId) {
-        document.getElementById('glasspanel').style.display = 'none';
-        document.getElementById(dialogId).style.display = 'none';
+    showFileList() {
+        return this.gdrive.listTrustpadFiles().then(files => {
+            files.sort(this.sortFileByName_);
+            let filelistDiv = document.getElementById('filelist');
+            this.setVisible_(filelistDiv, true);
+            let table = filelistDiv.children[0];
+            table.innerHTML = "";
+
+            table.appendChild(this.newFileListRowHeader_());
+            files.forEach(file => table.appendChild(this.newFileListRow_(file)));
+            this.setVisible_(document.getElementById('create-trailer'), files.length === 0);
+        });
     }
 
-    decrypt() {
-        let passphrase = document.getElementById('passphrase').value;
-        this.codec = new Codec(passphrase);
-        let plainText = this.codec.decrypt(this.cipherText);
-        if (!plainText) {
-            document.getElementById('passphrase-error').innerText = 'Invalid pass phrase';
+    hideFileList() {
+        this.setVisible_(document.getElementById('filelist'), false);
+    }
+
+    newFileListRowHeader_() {
+        let header = document.createElement('tr');
+        header.innerHTML = "<th>Name</th>";
+        return header;
+    }
+
+    newFileListRow_(file) {
+        let tr = document.createElement("tr");
+        tr.className = "file";
+        let cell = document.createElement("td");
+
+        let name = document.createElement("div");
+        name.className = "name";
+        name.innerText = file.name;
+        let lastModified = document.createElement("div");
+        lastModified.className = "lastModified";
+        lastModified.innerText = "Modified " + new Date(file.modifiedTime).toLocaleDateString();
+        cell.appendChild(name);
+        cell.appendChild(lastModified);
+        tr.appendChild(cell);
+        tr.onclick = function() {
+            this.updateAddressBar("/" + file.id);
+        }.bind(this);
+        return tr;
+    }
+
+    openFile(fileId) {
+        return this.gdrive.readFile(fileId).then(content => {
+            this.fileId = fileId;
+            this.setVisible_(document.getElementById('file-editor'), true);
+            let params = JSON.parse(content);
+            this.cipherText = content;
+            this.setContent(fileId, params.encrypted);
             document.getElementById('passphrase').value = '';
-            document.getElementById('passphrase').focus();
-            return;
-        }
-        this.setContent(this.fileId, this.codec.decrypt(this.cipherText));
-        this.hideDialog('passphrase-dialog');
-        this.setStatus('All changes saved');
+            let validate = function(values) {
+                if (new Codec(values.password).decrypt(this.cipherText) === null) {
+                    document.getElementById('passphrase-error').innerText = 'Invalid pass phrase';
+                    document.getElementById('passphrase').value = '';
+                    document.getElementById('passphrase').focus();
+                    return false;
+                }
+                return true;
+            }.bind(this);
+            this.setStatus('Password required');
+            this.modalDialog.openDialog('passphrase-dialog', 'passphrase', validate).then(values => {
+                this.codec = new Codec(values.password);
+                let plainText = this.codec.decrypt(this.cipherText);
+                this.setContent(this.fileId, this.codec.decrypt(this.cipherText));
+                this.setStatus('All changes saved');
+            });
+        });
     }
 
-    newPassphrase() {
-        let passphrase = document.getElementById('new-passphrase').value;
-        let passphrase2 = document.getElementById('new-passphrase2').value;
-        if (passphrase != passphrase2) {
-            document.getElementById('new-passphrase-error').innerText = 'Passphrases do not match';
-            document.getElementById('new-passphrase').value = '';
-            document.getElementById('new-passphrase2').value = '';
-            document.getElementById('new-passphrase').focus();
-            return;
+    closeFile() {
+        this.setVisible_(document.getElementById('file-editor'), false);
+    }
+
+    updateAddressBar(url) {
+        window.history.pushState(null, null, url);
+        this.loadFromAddressBar();
+    }
+
+    loadFromAddressBar() {
+        let fileId = window.location.pathname.substr(1);
+        if (fileId) {
+            this.hideFileList();
+            this.openFile(fileId);
+        } else {
+            this.modalDialog.close();
+            this.closeFile();
+            this.showFileList()
+                .then(res => this.hideLoading());
         }
-        if (!passphrase) {
-            document.getElementById('new-passphrase-error').innerText = 'Passphrase empty';
-            document.getElementById('new-passphrase').value = '';
-            document.getElementById('new-passphrase2').value = '';
-            document.getElementById('new-passphrase').focus();
-            return;
-        }
-        this.hideDialog('new-passphrase-dialog');
-        this.codec = new Codec(passphrase);
     }
 }
 
+class ModalDialog {
+    openedDialogId;
+
+    /**
+     * Opens a new modal dialog.
+     * @param dialogId The ID of the dialog div.
+     * @param focusId the ID of the element to start in focus.
+     * @param validate a data validation function.
+     */
+    openDialog(dialogId, focusId, validate) {
+        let dialogElement = document.getElementById(dialogId);
+        this.clearInputs_(dialogElement);
+        this.close();
+        document.getElementById('glasspanel').style.display = 'block';
+        dialogElement.style.display = 'block';
+        if (focusId) {
+            document.getElementById(focusId).focus();
+        }
+        this.openedDialogId = dialogId;
+
+        return new Promise((success, error) => {
+            let onSubmitCallback = (() => this.onSubmit_(dialogElement, validate, success));
+            this.registerOnSubmitCallbackonSubmit_(dialogElement, onSubmitCallback);
+        });
+    }
+
+    /**
+     * The handler called on form submit.
+     */
+    onSubmit_(dialogElement, validate, successCallback) {
+        let values = {};
+        this.getValues_(dialogElement, values);
+        if (!validate || validate(values)) {
+            this.clearInputs_(dialogElement);
+            this.close();
+            successCallback(values);
+        }
+        return false;
+    }
+
+    /**
+     * Registers a new onsubmit callback.
+     */
+    registerOnSubmitCallbackonSubmit_(element, callback) {
+        if (element.nodeName === 'FORM') {
+            element.onsubmit = callback;
+            return;
+        }
+        for (let child of element.children) {
+            this.registerOnSubmitCallbackonSubmit_(child, callback);
+        }
+    }
+
+    /**
+     * Clears all the <input> fields.
+     */
+    clearInputs_(element) {
+        if (element.nodeName === 'INPUT' && element.name) {
+            element.value = '';
+        }
+        if (element.className === 'error') {
+            element.innerText = '';
+        }
+        for (let child of element.children) {
+            this.clearInputs_(child);
+        }
+    }
+
+    /**
+     * Retrives all the values of the dialog
+     */
+    getValues_(element, values) {
+        if (element.nodeName === 'INPUT' && element.name) {
+            values[element.name] = element.value;
+        }
+        for (let child of element.children) {
+            this.getValues_(child, values);
+        }
+    }
+
+    /**
+     * Closes any open dialog.
+     */
+    close() {
+        if (this.openedDialogId) {
+            document.getElementById('glasspanel').style.display = 'none';
+            document.getElementById(this.openedDialogId).style.display = 'none';
+            this.openedDialogId = null;
+        }
+    }
+}
