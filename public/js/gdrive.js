@@ -10,13 +10,22 @@ const SCOPES = 'https://www.googleapis.com/auth/drive.file';
 
 class GDrive {
     load() {
-        return new Promise((successCallback, errorCallback) => gapi.load('client:auth2', successCallback))
-            .then(res => gapi.client.init({
-                    apiKey: API_KEY,
-                    clientId: CLIENT_ID,
-                    discoveryDocs: DISCOVERY_DOCS,
-                    scope: SCOPES
-                }));
+        return new Promise((successCallback, errorCallback) => {
+            try {
+                gapi.load('client:auth2', function() {
+                    gapi.client.init({
+                        apiKey: API_KEY,
+                        clientId: CLIENT_ID,
+                        discoveryDocs: DISCOVERY_DOCS,
+                        scope: SCOPES
+                    })
+                    .then(successCallback, errorCallback);
+                });
+            } catch (error) {
+                errorCallback(error);
+                throw error;
+            }
+        });
     }
 
     isSignedIn() {

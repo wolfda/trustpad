@@ -15,17 +15,15 @@ function log(message) {
  */
 function start() {
     let gdrive = new GDrive();
+    let textArea = document.getElementById("text-area");
+    let textAreaRo = document.getElementById("text-area-ro");
+    trustpad = new Trustpad(textArea, textAreaRo, gdrive);
     gdrive.load()
-        .then(res => {
-            let textArea = document.getElementById("text-area");
-            let textAreaRo = document.getElementById("text-area-ro");
-            trustpad = new Trustpad(textArea, textAreaRo, gdrive);
-            trustpad.checkAuth().then(res => {
-                trustpad.loadFromAddressBar();
-            });
-        })
+        .then(res => trustpad.checkAuth())
+        .then(res => trustpad.loadFromAddressBar())
         .catch(error => {
-            log("Error, unable to start the application");
+            trustpad.setSplashError();
+            log("Error, unable to start the application: " + JSON.stringify(error));
             throw error;
         });
 }
@@ -58,8 +56,12 @@ class Trustpad {
         element.style.display = visible ? 'block' : 'none';
     }
 
-    hideLoading() {
+    hideSplash() {
         this.setVisible_(document.getElementById('splash'), false);
+    }
+
+    setSplashError() {
+        document.getElementById('splash').className = 'error';
     }
 
     checkAuth() {
@@ -251,12 +253,12 @@ class Trustpad {
         if (fileId) {
             this.hideFileList();
             this.openFile(fileId)
-                .then(res => this.hideLoading());
+                .then(res => this.hideSplash());
         } else {
             this.modalDialog.close();
             this.closeFile();
             this.showFileList()
-                .then(res => this.hideLoading());
+                .then(res => this.hideSplash());
         }
     }
 }
