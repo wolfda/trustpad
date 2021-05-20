@@ -18,7 +18,8 @@ function start() {
     gdrive.load()
         .then(res => {
             let textArea = document.getElementById("text-area");
-            trustpad = new Trustpad(textArea, gdrive);
+            let textAreaRo = document.getElementById("text-area-ro");
+            trustpad = new Trustpad(textArea, textAreaRo, gdrive);
             trustpad.checkAuth().then(res => {
                 trustpad.loadFromAddressBar();
             });
@@ -31,14 +32,18 @@ function start() {
 
 class Trustpad {
     textArea;
+    textAreaRo;
+    saving;
     gdrive;
     fileId;
     modalDialog = new ModalDialog();
     saveTimeout;
 
-    constructor(textArea, gdrive) {
+    constructor(textArea, textAreaRo, gdrive) {
         this.textArea = textArea;
+        this.textAreaRo = textAreaRo;
         this.gdrive = gdrive;
+        this.saving = false;
 
         window.addEventListener('popstate', function() {
             trustpad.loadFromAddressBar();
@@ -57,10 +62,6 @@ class Trustpad {
         this.setVisible_(document.getElementById('splash'), false);
     }
 
-    setStatus(statusMessage) {
-        document.getElementById('save-status').innerText = statusMessage;
-    }
-
     checkAuth() {
         if (!this.gdrive.isSignedIn()) {
             return this.gdrive.signIn(true).then(res => this.checkAuth());
@@ -77,10 +78,12 @@ class Trustpad {
     setContent(fileId, content) {
         this.fileId = fileId;
         this.textArea.value = content;
+        this.textAreaRo.innerText = content;
     }
 
     scheduleSave(millis) {
-        this.setStatus('Saving...');
+        document.getElementById('file-editor-view').classList.add("disabled");
+        this.saving = true;
         if (this.saveTimeout) {
             clearTimeout(this.saveTimeout);
         }
@@ -96,7 +99,8 @@ class Trustpad {
         let content = this.codec.encrypt(this.textArea.value);
         this.gdrive.writeFile(this.fileId, null, content).then(newFileId => {
             this.fileId = newFileId;
-            this.setStatus('All changes saved');
+            document.getElementById('file-editor-view').classList.remove("disabled");
+            this.saving = false;
         });
     }
 
@@ -191,6 +195,7 @@ class Trustpad {
     }
 
     openFile(fileId) {
+        this.view();
         return this.gdrive.readFile(fileId).then(content => {
             this.fileId = fileId;
             this.setVisible_(document.getElementById('file-editor'), true);
@@ -207,14 +212,29 @@ class Trustpad {
                 }
                 return true;
             }.bind(this);
-            this.setStatus('Password required');
             this.modalDialog.openDialog('passphrase-dialog', 'passphrase', validate).then(values => {
                 this.codec = new Codec(values.password);
                 let plainText = this.codec.decrypt(this.cipherText);
                 this.setContent(this.fileId, this.codec.decrypt(this.cipherText));
-                this.setStatus('All changes saved');
             });
         });
+    }
+
+    view() {
+        if (!this.saving) {
+            this.textAreaRo.innerText = this.textArea.value;
+            this.setVisible_(this.textAreaRo, true);
+            this.setVisible_(this.textArea, false);
+            this.setVisible_(document.getElementById("file-editor-edit"), true);
+            this.setVisible_(document.getElementById("file-editor-view"), false);
+        }
+    }
+
+    edit() {
+        this.setVisible_(this.textAreaRo, false);
+        this.setVisible_(this.textArea, true);
+        this.setVisible_(document.getElementById("file-editor-edit"), false);
+        this.setVisible_(document.getElementById("file-editor-view"), true);
     }
 
     closeFile() {
@@ -230,7 +250,8 @@ class Trustpad {
         let fileId = window.location.pathname.substr(1);
         if (fileId) {
             this.hideFileList();
-            this.openFile(fileId);
+            this.openFile(fileId)
+                .then(res => this.hideLoading());
         } else {
             this.modalDialog.close();
             this.closeFile();

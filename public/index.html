@@ -22,11 +22,15 @@
         <button id="authorizeButton" style="display: none">Signin</button>
 
         <div id="file-editor" style="display: none">
-            <div id="save-status" class="save-status"></div>
-            <div id="file-editor-close" class="close"></div>
+            <div class="top-bar">
+                <div id="file-editor-close" class="top-bar-button left">Back</div>
+                <div id="file-editor-edit" class="top-bar-button right" onclick="trustpad.edit()">Edit</div>
+                <div id="file-editor-view" class="top-bar-button right" onclick="trustpad.view()">Done</div>
+            </div>
 
-            <div class="text-control-panel">
+            <div class="text-control-panel file-content">
                 <textarea id="text-area" onchange="trustpad.scheduleSave(1000)" onkeyup="trustpad.scheduleSave(1000)"></textarea>
+                <div id="text-area-ro" class="file-viewer"></div>
             </div>
         </div>
 
@@ -82,10 +86,10 @@
         <div id="filelist" style="display: none">
             <table class="filelist">
             </table>
-            <div id="createfile" class="create create-button" onclick="trustpad.openCreateFile()">New file</div>
+            <div id="createfile" class="top-bar-button right" onclick="trustpad.openCreateFile()">New file</div>
 
             <div id="create-trailer">
-                No file. Use the <span class="create" onclick="trustpad.openCreateFile()">New file</span> above.
+                No file. Use the <span class="top-bar-button" onclick="trustpad.openCreateFile()">New file</span> above.
             </div>
         </div>
 

@@ -24,11 +24,11 @@ class GDrive {
     }
 
     signIn(interactive) {
-        let options = new gapi.auth2.SigninOptionsBuilder();
+        let options = {};
         if (!interactive) {
-            options.setPrompt('none');
+            options.prompt = 'none';
         }
-        return gapi.auth2.getAuthInstance().signIn();
+        return gapi.auth2.getAuthInstance().signIn(options);
     }
 
     signOut() {
